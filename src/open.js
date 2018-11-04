@@ -14,7 +14,13 @@ window.__ = function () {
         isDate: isDate,
         isNull: isNull,
         isNaN: isNaN,
-        isNumber: isNumber
+        isNumber: isNumber,
+        isFunction: isFunction,
+        isRegExp: isRegExp,
+        isString: isString,
+        isUndefined: isUndefined,
+        isSymbol: isSymbol,
+
 
     }
     function objectPrototypeToString(value) {
@@ -68,4 +74,26 @@ window.__ = function () {
     function isNumber (value) {
         return objectPrototypeToString(value) == '[object Number]'
     }
+
+    function isFunction (value) {
+        return objectPrototypeToString(value) == '[object Function]'
+    }
+
+    function isRegExp (value) {
+        return objectPrototypeToString(value) == '[object RegExp]'
+    }
+
+    function isString (value) {
+        return objectPrototypeToString(value) == '[object String]'
+    }
+
+    function isUndefined (value) {
+        return objectPrototypeToString(value) == '[object Undefined]'
+    }
+    // 符号，不能带 new 创建
+    function isSymbol (value) {
+        return objectPrototypeToString(value) == '[object Symbol]'
+    }
+
+    
 }()
