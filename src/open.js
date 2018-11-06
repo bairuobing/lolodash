@@ -29,7 +29,8 @@ window.__ = function () {
         isMap: isMap,
         isSet: isSet,
         isEqual: isEqual,
-        isEqualWith: 0,
+        isEqualWith: isEqualWith,
+
 
 
 
@@ -139,107 +140,110 @@ window.__ = function () {
     function isSet(value) {
         return objectPrototypeToString(value) == '[object Set]'
     }
-    // 考虑循环引用
+    // isEqual
+    // a = { foo: { b: { foo: { c: { foo: null } } } } }
+    // b = { foo: { b: { foo: { c: { foo: null } } } } }
+    // a.foo.b.foo.c.foo = a
+    // b.foo.b.foo.c.foo = b
+    // 对象比较，并且深层比较可枚举属性
+    /**
+     * deepEqual
+     * @param {Object} obj1 
+     * @param {Object} obj2 
+     * @param {Array} stack1 
+     * @param {Array} stack2 
+     * @return {boolean}
+     */
+    function deepEqual(obj1, obj2, stack1, stack2, customizer = undefined) {
+        var flag = false
+        if (customizer != undefined) {
+            flag = customizer(obj1, obj2)
+        }
+        
+        // 若两值为 object 类型，则继续判断其为何种具体类型
+        var className = objectPrototypeToString(obj1)
+        var classNameOther = objectPrototypeToString(obj2)
+        if (className !== classNameOther) {
+            if(flag) {
+                return true
+            } else {
+                return false
+            }
+        }
+        if(flag) {
+            return true
+        }
+        switch (className) {
+            case '[object RegExp]':
+            case '[object String]':
+                return '' + obj1 === '' + obj2
+            case '[object Number]':
+                if (isNaN(obj1)) return isNaN(obj2)
+                return +obj1 === +obj2
+            case '[object Date]':
+            case '[object Boolean]':
+                return +obj1 === +obj2
+        }
+
+        // 若不是数组
+        if (className != '[object Array]') {
+            // 只要是函数类型，就一定不相同
+            if (className == '[object Function]' || classNameOther == '[object Function]') return false
+        }
+        // 实现不考虑 Map Set
+        stack1 = stack1 || []
+        stack2 = stack2 || []
+
+        // 循环引用情况考虑
+        var length = stack1.length
+        // 将初始传入元素 与 栈内所有元素做对比，一旦发现重复就表示发生了循环引用
+        while (length--) {
+            if (stack1[length] === obj1) {
+                return stack2[length] === obj2
+            }
+        }
+
+        stack1.push(obj1)
+        stack2.push(obj2)
+        
+        // 如果是数组
+        if (className == '[object Array]') {
+            length = obj1.length
+            if (length !== obj2.length) return false
+
+            while (length--) {
+                if (!deepEqual(obj1[length], obj2[length], stack1, stack2, customizer)) return false
+            }
+        }
+        // 对象判断
+        else {
+            var keys = Object.keys(obj1)
+            var key
+            length = keys.length
+
+            if (Object.keys(obj2).length !== length) return false
+            while (length--) {
+
+                key = keys[length]
+                if (!(obj2.hasOwnProperty(key) && deepEqual(obj1[key], obj2[key], stack1, stack2, customizer))) return false
+            }
+        }
+        stack1.pop()
+        stack2.pop()
+        return true
+    }
+    
     function isEqual(value, other) {
-        // Number相等
-        if (value == other) {
-            return true
-        }
-        // 考虑 NaN 的特殊情况
-        if (isNaN(value) && isNaN(other)) {
-            return true
-        }
-        // 数组
-        if (isArray(value) && isArray(other)) {
-            if (value.length != other.length) return false
-            else {
-                for (var i = 0; i < value.length; i++) {
-                    if (!isEqual(value[i], other[i])) return false
-                }
-                return true
-            }
-        }
-        // 对象比较，并且深层比较可枚举属性
-        if (isObject(value) && isObject(other)) {
-            /**
-             * deepEqual
-             * @param {Object} obj1 
-             * @param {Object} obj2 
-             * @param {Array} stack1 
-             * @param {Array} stack2 
-             * @return {boolean}
-             */
-            function deepEqual(obj1, obj2, stack1, stack2) {
-                // 若两值为 object 类型，则继续判断其为何种具体类型
-                var className = objectPrototypeToString(obj1)
-                var classNameOther = objectPrototypeToString(obj2)
-                if (className !== classNameOther) return false
-                switch (className) {
-                    case '[object RegExp]':
-                    case '[object String]':
-                        return '' + obj1 === '' + obj2
-                    case '[object Number]':
-                        if (isNaN(obj1)) return isNaN(obj2)
-                        return +obj1 === +obj2
-                    case '[object Date]':
-                    case '[object Boolean]':
-                        return +obj1 === +obj2
-                }
+        // 考虑循环引用
+        var stk1 = []
+        var stk2 = []
+        return deepEqual(value, other, stk1, stk2)
+    }
 
-                // 若不是数组
-                if (className != '[object Array]') {
-                    // 只要是函数类型，就一定不相同
-                    if (className == '[object Function]' || classNameOther == '[object Function]') return false
-                }
-                // 实现不考虑 Map Set
-                stack1 = stack1 || []
-                stack2 = stack2 || []
-
-                // 循环引用情况考虑
-                var length = stack1.length
-                
-                while (length--) {
-                    if (stack1[length] === obj1) {
-                        return stack2[length] === obj2
-                    }
-                }
-
-                stack1.push(obj1)
-                stack2.push(obj2)
-                
-                // 如果是数组
-                if (className != '[object Array]') {
-                    length = obj1.length
-                    if (length !== obj2.length) return false
-
-                    while (length--) {
-                        if (!deepEqual(obj1[length], obj2[length], stack1, stack2)) return false
-                    }
-                }
-                // 对象判断
-                else {
-                    var keys = Object.keys(obj1)
-                    var key
-                    length = keys.length
-
-                    if (Object.keys(obj2).length !== length) return false
-                    while (length--) {
-
-                        key = keys[length]
-                        if (!(obj2.hasOwnProperty(key) && eq(obj1[key], obj2[key], stack1, stack2))) return false
-                    }
-                }
-                stack1.pop()
-                stack2.pop()
-                return true
-            }
-            // 考虑循环引用
-            var stk1 = []
-            var stk2 = []
-            return deepEqual(value, other, stk1, stk2)
-        } else {
-            return false
-        }
+    function isEqualWith (value, other, customizer) {
+        var stk1 = []
+        var stk2 = []
+        return deepEqual(value, other, stk1, stk2, customizer)
     }
 
 
