@@ -2,6 +2,42 @@
  * lolodash
  */
 window.__ = function () {
+    const _typeMap = {
+        Arguments: '[object Arguments]',
+        Array: '[object Array]',
+        AsyncFunction: '[object AsyncFunction]',
+        Boolean: '[object Boolean]',
+        Date: '[object Date]',
+        DOMException: '[object DOMException]',
+        Error: '[object Error]',
+        Function: '[object Function]',
+        HTMLCollection: "[object HTMLCollection]",
+        GeneratorFunction: '[object GeneratorFunction]',
+        Map: '[object Map]',
+        Number: '[object Number]',
+        Null: '[object Null]',
+        Object: '[object Object]',
+        Promise: '[object Promise]',
+        Proxy: '[object Proxy]',
+        RegExp: '[object RegExp]',
+        Set: '[object Set]',
+        String: '[object String]',
+        Symbol: '[object Symbol]',
+        Undefined: '[object Undefined]',
+        WeakMap: '[object WeakMap]',
+        WeakSet: '[object WeakSet]',
+        ArrayBuffer: '[object ArrayBuffer]',
+        DataView: '[object DataView]',
+        Float32Array: '[object Float32Array]',
+        Float64Array: '[object Float64Array]',
+        Int8Array: '[object Int8Array]',
+        Int16Array: '[object Int16Array]',
+        Int32Array: '[object Int32Array]',
+        Uint8Array: '[object Uint8Array]',
+        Uint8ClampedArray: '[object Uint8ClampedArray]',
+        Uint16Array: '[object Uint16Array]',
+        Uint32Array: '[object Uint32Array]'
+    }
     return {
         objectPrototypeToString: objectPrototypeToString,
         head: head,
@@ -30,11 +66,23 @@ window.__ = function () {
         isSet: isSet,
         isEqual: isEqual,
         isEqualWith: isEqualWith,
-
-
-
+        isError: isError,
+        isFinite: isFinite,
+        isInteger: isInteger,
+        isLength: isLength,
+        isMatch: isMatch,
+        isMatchWith: isMatchWith,
+        isNative: isNative,
+        isNil: isNil,
+        isObjectLike: isObjectLike,
+        isPlainObject: isPlainObject,
+        isSafeInteger: isSafeInteger,
+        isTypedArray: isTypedArray,
+        
 
     }
+
+
     function objectPrototypeToString(value) {
         return Object.prototype.toString.call(value)
     }
@@ -62,7 +110,7 @@ window.__ = function () {
     }
 
     function isArguments(value) {
-        return objectPrototypeToString(value) == '[object Arguments]'
+        return objectPrototypeToString(value) == _typeMap.Arguments
     }
 
     function isArray(value) {
@@ -70,23 +118,23 @@ window.__ = function () {
     }
 
     function isArrayBuffer(value) {
-        return objectPrototypeToString(value) == '[object ArrayBuffer]'
+        return objectPrototypeToString(value) == _typeMap.ArrayBuffer
     }
 
     function isElement(value) {
-        return objectPrototypeToString(value) == '[object HTMLCollection]'
+        return objectPrototypeToString(value) == _typeMap.HTMLCollection
     }
 
     function isBoolean(value) {
-        return objectPrototypeToString(value) == '[object Boolean]'
+        return objectPrototypeToString(value) == _typeMap.Boolean
     }
 
     function isDate(value) {
-        return objectPrototypeToString(value) == '[object Date]'
+        return objectPrototypeToString(value) == _typeMap.Date
     }
 
     function isNull(value) {
-        return objectPrototypeToString(value) == '[object Null]'
+        return objectPrototypeToString(value) == _typeMap.Null
     }
     // isNaN(undefined) == true But lodash is not
     function isNaN(value) {
@@ -94,11 +142,11 @@ window.__ = function () {
     }
 
     function isNumber(value) {
-        return objectPrototypeToString(value) == '[object Number]'
+        return objectPrototypeToString(value) == _typeMap.Number
     }
 
     function isFunction(value) {
-        return objectPrototypeToString(value) == '[object Function]'
+        return objectPrototypeToString(value) == _typeMap.Function
     }
 
     function isObject(value) {
@@ -106,19 +154,19 @@ window.__ = function () {
     }
 
     function isRegExp(value) {
-        return objectPrototypeToString(value) == '[object RegExp]'
+        return objectPrototypeToString(value) == _typeMap.RegExp
     }
 
     function isString(value) {
-        return objectPrototypeToString(value) == '[object String]'
+        return objectPrototypeToString(value) == _typeMap.String
     }
 
     function isUndefined(value) {
-        return objectPrototypeToString(value) == '[object Undefined]'
+        return value == void 0
     }
     // 符号，不能带 new 创建
     function isSymbol(value) {
-        return objectPrototypeToString(value) == '[object Symbol]'
+        return objectPrototypeToString(value) == _typeMap.Symbol
     }
 
     function isArrayLike(value) {
@@ -130,15 +178,15 @@ window.__ = function () {
     }
 
     function isEmpty(value) {
-        return objectPrototypeToString(value) == '[object Null]'
+        return objectPrototypeToString(value) == _typeMap.Null
     }
 
     function isMap(value) {
-        return objectPrototypeToString(value) == '[object Map]'
+        return objectPrototypeToString(value) == _typeMap.Map
     }
 
     function isSet(value) {
-        return objectPrototypeToString(value) == '[object Set]'
+        return objectPrototypeToString(value) == _typeMap.Set
     }
     // isEqual
     // a = { foo: { b: { foo: { c: { foo: null } } } } }
@@ -159,18 +207,18 @@ window.__ = function () {
         if (customizer != undefined) {
             flag = customizer(obj1, obj2)
         }
-        
+
         // 若两值为 object 类型，则继续判断其为何种具体类型
         var className = objectPrototypeToString(obj1)
         var classNameOther = objectPrototypeToString(obj2)
         if (className !== classNameOther) {
-            if(flag) {
+            if (flag) {
                 return true
             } else {
                 return false
             }
         }
-        if(flag) {
+        if (flag) {
             return true
         }
         switch (className) {
@@ -205,7 +253,7 @@ window.__ = function () {
 
         stack1.push(obj1)
         stack2.push(obj2)
-        
+
         // 如果是数组
         if (className == '[object Array]') {
             length = obj1.length
@@ -232,7 +280,7 @@ window.__ = function () {
         stack2.pop()
         return true
     }
-    
+
     function isEqual(value, other) {
         // 考虑循环引用
         var stk1 = []
@@ -240,11 +288,75 @@ window.__ = function () {
         return deepEqual(value, other, stk1, stk2)
     }
 
-    function isEqualWith (value, other, customizer) {
+    function isEqualWith(value, other, customizer) {
         var stk1 = []
         var stk2 = []
         return deepEqual(value, other, stk1, stk2, customizer)
     }
 
+    function isError(value) {
+        return objectPrototypeToString(value) == _typeMap.Error
+    }
 
+    function isFinite(value) {
+        return isNumber(value) && !(1 / value == 0)
+    }
+
+    function isInteger(value) {
+        return value % 1 == 0
+    }
+
+    function isLength(value) {
+        return isInteger(value) && value >= 0
+    }
+
+    function isMatch(object, source) {
+        var merge = Object.assign({}, object, source)
+        return isEqual(object, merge)
+    }
+
+    function isMatchWith(object, source, customizer=undefined) {
+        var merge = Object.assign({}, object, source)
+        return isEqualWith(object, merge, customizer)
+    }
+
+    function isNative(value) {
+        return isFunction(value) && /\[native code\]/.test(value.toString())
+    }
+
+    function isNil(value) {
+        // void [exp] 获取 undefined的原始值；防止局部作用域对于undefined的改写
+        return value == void 0
+    }
+
+    function isObjectLike(value) {
+        return typeof value == 'object' && !isNull(value)
+    }
+
+    function isPlainObject(value) {
+        return Object.getPrototypeOf(value) == Object.prototype
+    }
+
+    function isSafeInteger(value) {
+        return Number.isSafeInteger(value)
+    }
+
+    function isTypedArray(value) {
+        var type = objectPrototypeToString(value)
+        switch (type) {
+            case  _typeMap.Float32Array: 
+            case  _typeMap.Float64Array: 
+            case  _typeMap.Int8Array: 
+            case  _typeMap.Int16Array: 
+            case  _typeMap.Int32Array: 
+            case  _typeMap.Uint8Array: 
+            case  _typeMap.Uint8ClampedArray: 
+            case  _typeMap.Uint16Array: 
+            case  _typeMap.Uint32Array: 
+            return true
+        }
+        return false
+    }
+
+    
 }()
