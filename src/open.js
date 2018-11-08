@@ -78,7 +78,15 @@ window.__ = function () {
         isPlainObject: isPlainObject,
         isSafeInteger: isSafeInteger,
         isTypedArray: isTypedArray,
-        
+        chunk: chunk,
+        compact: compact,
+        clone: clone,
+        cloneDeep: cloneDeep,
+        flatten: flatten,
+        flattenDeep: flattenDeep,
+        flattenDepth: flattenDepth,
+        concat: concat,
+
 
     }
 
@@ -178,7 +186,24 @@ window.__ = function () {
     }
 
     function isEmpty(value) {
-        return objectPrototypeToString(value) == _typeMap.Null
+        switch (objectPrototypeToString(value)) {
+            case _typeMap.Array:
+            case _typeMap.String:
+            case _typeMap.Arguments:
+                return value.length == 0
+            case _typeMap.Map:
+            case _typeMap.Set:
+                return value.size == 0
+            case _typeMap.Object:
+                return Object.keys(value).length == 0
+            case _typeMap.Null:
+            case _typeMap.Undefined:
+            case _typeMap.Boolean:
+                return true
+        }
+        if(isNaN(value)) {
+            return true
+        }
     }
 
     function isMap(value) {
@@ -358,5 +383,106 @@ window.__ = function () {
         return false
     }
 
-    
+    function chunk(array, size=1) {
+        var res = []
+        for (var i = 0; i < array.length; i+=size) {
+            res.push(array.slice(i, i + size))
+        }
+        return res
+    }
+
+    function compact(array) {
+        var res = []
+        for (var i of array) {
+            if (!isEmpty(i) && i != 0) {
+                res.push(i)
+            }
+        }
+        return res
+    }
+
+    function clone(value) {
+        // 外层拷贝，内层还是引用
+        return Object.assign({},value)
+    }
+
+    function cloneDeep(value) {
+        function helper(sheep, stack) {
+            
+            var className = objectPrototypeToString(sheep)
+            switch (className) {
+                case '[object RegExp]':
+                case '[object String]':
+                case '[object Date]':
+                case '[object Boolean]':
+                    return Object.assign({},sheep)
+                case '[object Number]':
+                    return sheep
+            }
+            // 循环引用
+            stack = stack || []
+
+            var length = stack.length
+            // 将初始传入元素 与 栈内所有元素做对比，一旦发现重复就表示发生了循环引用
+            while (length--) {
+                if (stack[length] === sheep) {
+                    // 一旦发现重复就不要再深入比对了
+                    return 
+                }
+            }
+            
+            stack.push(sheep)
+            // 若是数组
+            if (className == '[object Array]') {
+                length = sheep.length
+                var dolly = new Array(length)
+                while (length--) {
+                    dolly[length] = helper(sheep[length], stack)
+                }
+            } else { // 若是对象
+                var keys = Object.keys(sheep)
+                length = keys.length
+                var key
+                var dolly = new Object()
+                while (length--) {
+                    key = keys[length]
+                    dolly[key] = helper(sheep[key], stack)
+                    
+                }
+            }
+            stack.pop()
+            return dolly
+        }
+        var stk = []
+        return helper(value, stk)
+    }
+
+    function flatten(array) {
+        return flattenDepth(array, 1)
+    }
+
+    function flattenDeep(array) {
+        return flattenDepth(array, Infinity)
+    }
+
+    function flattenDepth(array, depth=1) {
+        if (depth === 0) {
+            return array.slice()
+        }
+        var res = []
+        array.forEach(element => {
+            if(isArray(element)) {
+                var tmp = flattenDepth(element, depth - 1)
+                res = [...res, ...tmp]
+            } else {
+                res.push(element)
+            }
+        })
+        return res
+    }
+
+    function concat(array, ...values) {
+        return array.concat(...values)
+    }
+
 }()
