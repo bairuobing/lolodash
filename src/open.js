@@ -38,8 +38,29 @@ window.__ = function () {
         Uint16Array: '[object Uint16Array]',
         Uint32Array: '[object Uint32Array]'
     }
+    
+    function _processPlaceholder(partials, args, placeholder) {
+        var cut = 0
+        return partials.map(element => {
+            if (element == placeholder) {
+                var idx = cut
+                // 如果发现占位符，就在该占位符处按序放入用户传入的参数
+                return args[cut++]
+            } else {
+                return element
+            }
+            
+        }).concat(args.slice(cut))
+        
+    }
     return {
         objectPrototypeToString: objectPrototypeToString,
+        iteratee: iteratee,
+        property: property,
+        matches: matches,
+        matchesProperty: matchesProperty,
+        fromPairs: fromPairs,
+        toPairs: toPairs,
         head: head,
         noop: noop,
         uniq: uniq,
@@ -86,6 +107,15 @@ window.__ = function () {
         flattenDeep: flattenDeep,
         flattenDepth: flattenDepth,
         concat: concat,
+        difference: difference,
+        differenceBy: 0,
+        before: before,
+        after: after,
+        ary: ary,
+        bind: bind,
+        debounce: debounce,
+        throttle: throttle,
+        
 
 
     }
@@ -93,6 +123,53 @@ window.__ = function () {
 
     function objectPrototypeToString(value) {
         return Object.prototype.toString.call(value)
+    }
+    
+    function iteratee(func) {
+        if (typeof func === 'function') {
+            return func
+        } else if (typeof func === 'string') {
+            return property(func)
+        } else if (Array.isArray(func)) {
+            return matchesProperty(func)
+        } else {
+            return matches(func)
+        }
+    }
+
+    function property(propName) {
+        return obj => obj[propName]
+    }
+
+    function matches(source) {
+        return function(obj) {
+            for (var item in source) {
+                return isMatch(obj, item)
+            }
+        }
+    }
+
+    function matchesProperty(array) {
+        return matches(fromPairs(array))
+    }
+
+    function fromPairs(pairs) {
+        var res = {}
+        for (var i = 0; i < pairs.length; i++) {
+            res[pairs[0]] = pairs[1]
+        }
+        return res
+    }
+
+    function toPairs(object) {
+        var arr = []
+        var keys = Object.keys(object)
+        for(var item of keys) {
+            if (object.hasOwnProperty(item)) {
+                arr.push(item, object[item])
+            }
+        }
+        return arr
     }
 
     function head(array) {
@@ -485,4 +562,99 @@ window.__ = function () {
         return array.concat(...values)
     }
 
+    function difference(array, ...values) {
+        var res = []
+        var val = []
+        for(var i = 0; i < values.length; i++) {
+            val = val.concat(values[i])
+        }
+
+        for(var i = 0; i < val.length; i++) {
+            if(!val.includes(array[i])) {
+                res.push(array[i])
+            }
+        }
+        return res
+    }
+
+    // 创建一个函数，该函数执行func不超过 n 次，之后再调用就只返回最终func的返回值
+    function before(n, func) {
+        var memo
+        return function() {
+            if(--n > 0){
+                memo = func.call(this, ...arguments)
+            }
+            return memo
+        }
+    }
+
+    // 创建一个函数，这个函数在被调用n及以上次的时候，执行func函数
+    function after(n, func) {
+        var memo
+        return function() {
+            if (--n < 1) {
+                memo = func.call(this, ...arguments)
+            }
+            return memo
+        }
+    }
+
+    // 创建一个最多有n个参数，忽略其它参数的func的函数
+    function ary(func, n=func.length) {
+        return function(...args) {
+            return func.call(this, args.slice(0, n))
+        }
+    }
+
+    // 并非是将函数实现绑定稀疏参数，而是将最终传入的参数在合适的位置插入实现，占位符
+    function bind(func, thisArg, ...partials) {
+        // 占位符为 _
+        var placeholder = bind.placeholder
+        var pendingFunc = function(...args) {
+            if (!isFunction(func)) return new Error('Bind must be called by a function')
+            var completeArgs = _processPlaceholder(partials, args, placeholder)
+            return func.call(thisArg,...completeArgs)
+        }
+        return pendingFunc
+    }
+    // 防抖
+    // 防抖分为两类情况：立即执行(leading)、延迟执行(trailing)
+    // { 'leading': false, 'trailing':true }
+    function debounce(func, wait=0, immediate=true) {
+        let timeStamp, context, args
+        const later = () => setTimeout(() => {
+            timeStamp = null
+            if(!immediate) {
+                func.apply(context, args)
+                context = args = null
+            }
+        },wait)
+        return function(...params) {
+            if(!timeStamp) {
+                timeStamp = later()
+                if(immediate) {
+                    func.apply(this, params)
+                } else {
+                    context = this
+                    args = params
+                }
+            } else {
+                clearTimeout(timeStamp)
+                timeStamp = later()
+            }
+        }
+    }
+    // 截流
+    function throttle(func, wait=0, options={}) {
+        var lastRunTime = 0
+        return function (...args) {
+            var now = Date.now()
+            if(now - lastRunTime > wait) {
+                func.apply(this,args)
+                lastRunTime = now
+            }
+        }
+    }
 }()
+
+__.bind.placeholder = window.__
